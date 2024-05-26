@@ -1,0 +1,69 @@
+<DATAFILE>
+
+[FILEINFO]
+file='../PVL_B2_AcuteRebound.csv'
+delimiter = comma
+header={animal_id, group, week_infection, days_post_ati, weeks_post_ATI, sample_draw_date, viral_load, cutoff, missing_value, log10_viral_load, censoring, time_days, Dynamics}
+
+[CONTENT]
+animal_id = {use=identifier}
+log10_viral_load = {use=observation, type=continuous}
+censoring = {use=censored}
+time_days = {use=time}
+Dynamics = {use=covariate, type=categorical}
+
+<MODEL>
+
+[COVARIATE]
+input = Dynamics
+
+Dynamics = {type=categorical, categories={'Acute', 'Rebound'}}
+
+[INDIVIDUAL]
+input = {c_pop, omega_c, log10beta_pop, omega_log10beta, tstart_pop, omega_tstart, log10pT0_pop, omega_log10pT0, delta_pop, omega_delta}
+
+DEFINITION:
+c = {distribution=logitNormal, max=50, typical=c_pop, sd=omega_c}
+log10beta = {distribution=normal, typical=log10beta_pop, sd=omega_log10beta}
+tstart = {distribution=logNormal, typical=tstart_pop, sd=omega_tstart}
+log10pT0 = {distribution=normal, typical=log10pT0_pop, sd=omega_log10pT0}
+delta = {distribution=logNormal, typical=delta_pop, sd=omega_delta}
+
+[LONGITUDINAL]
+input = {a}
+
+file = '../HIV_pT0.txt'
+
+DEFINITION:
+log10_viral_load = {distribution=normal, prediction=LVL, errorModel=constant(a)}
+
+<FIT>
+data = 'log10_viral_load'
+model = log10_viral_load
+
+<PARAMETER>
+a = {value=1, method=MLE}
+c_pop = {value=3, method=MLE}
+delta_pop = {value=1, method=MLE}
+log10beta_pop = {value=-4, method=MLE}
+log10pT0_pop = {value=7, method=MLE}
+omega_c = {value=1, method=MLE}
+omega_delta = {value=1, method=MLE}
+omega_log10beta = {value=1, method=MLE}
+omega_log10pT0 = {value=1, method=MLE}
+omega_tstart = {value=1, method=MLE}
+tstart_pop = {value=1, method=MLE}
+
+<MONOLIX>
+
+[TASKS]
+populationParameters()
+individualParameters(method = {conditionalMean, conditionalMode })
+fim(method = StochasticApproximation)
+logLikelihood(method = ImportanceSampling)
+plotResult(method = {indfits, parameterdistribution, covariancemodeldiagnosis, covariatemodeldiagnosis, obspred, vpc, residualsscatter, residualsdistribution, randomeffects, saemresults })
+
+[SETTINGS]
+GLOBAL:
+exportpath = 'B2AcReLogit50_'
+
